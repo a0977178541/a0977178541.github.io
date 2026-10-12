@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>百家樂數據分析站</title>
+<style>
+:root{--bg:#0d1714;--panel:#162722;--panel2:#20372f;--text:#eef8f2;--muted:#a8c2b5;--green:#7de0ae;--red:#ff9c9c;--gold:#f2d38a;--line:#345247}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#0b1411,#142a22);color:var(--text);font:16px system-ui,-apple-system,"Noto Sans TC",sans-serif}
+main{max-width:1100px;margin:auto;padding:20px}header{padding:20px 0 10px}h1{margin:0;font-size:clamp(25px,4vw,36px)}h2{font-size:19px;margin:0 0 14px}p{line-height:1.65;color:var(--muted)}.tag{display:inline-block;background:#284a3c;color:var(--green);border-radius:99px;padding:5px 10px;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:rgba(22,39,34,.96);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}.metric{font-size:26px;font-weight:750;margin-top:6px}.label{font-size:13px;color:var(--muted)}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}input,select,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px;background:#0e1d17;color:var(--text)}input,select{max-width:100%}button{cursor:pointer;background:#285540;border-color:#3b795c;font-weight:650}button.secondary{background:#1b3028}button.danger{background:#512d2d;border-color:#794747}.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:13px;color:var(--muted)}.road{display:flex;flex-wrap:wrap;gap:6px;min-height:42px}.dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:750}.banker{border:2px solid #ff8d8d;color:#ffb2b2}.player{border:2px solid #8cbcff;color:#b7d4ff}.tie{border:2px solid #82d8a6;color:#a8efc2}.small{font-size:12px;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}th{color:var(--muted)}.tablewrap{overflow:auto}.warning{border-left:3px solid var(--gold);padding-left:12px}.good{color:var(--green)}.bad{color:var(--red)}.hidden{display:none}.predict-box{border:1px solid var(--line);border-radius:12px;padding:14px;background:#102019}.predict-value{font-size:25px;font-weight:800;margin:6px 0}.bar{height:10px;border-radius:99px;background:#294239;overflow:hidden;margin:6px 0 12px}.bar span{display:block;height:100%;background:var(--green)}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:4px 9px;margin:3px;font-size:12px;color:var(--muted)}
+@media(max-width:760px){main{padding:13px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{font-size:22px}.card{padding:13px}}
+</style>
+</head>
+<body><main>
+<header><span class="tag">免費 · 本機保存</span><h1>百家樂數據分析站</h1><p>記錄牌局、查看歷史分布、檢查預測回測與模擬損益。資料預設只存在此瀏覽器，不會自動上傳。</p></header>
+<div class="grid">
+<div class="card"><div class="label">已記錄局數</div><div class="metric" id="n">0</div></div>
+<div class="card"><div class="label">莊 / 閒 / 和</div><div class="metric" id="counts">0 / 0 / 0</div></div>
+<div class="card"><div class="label">預測命中率</div><div class="metric" id="hit">—</div></div>
+<div class="card"><div class="label">累計淨損益（估算）</div><div class="metric" id="pnl">0</div></div>
+</div>
+<section class="card"><h2>下一局參考預測</h2><div class="predict-box">
+<div class="label">依據已記錄的最近 20 局（和局不計入莊／閒比例）</div>
+<div class="predict-value" id="nextPick">資料不足</div><div id="nextReason">請先新增至少 5 筆莊／閒結果，再查看歷史比例。</div>
+<div style="margin-top:12px"><div class="label">最近 20 局莊的比例 <span id="recentBankerPct">—</span></div><div class="bar"><span id="recentBankerBar" style="width:0%"></span></div>
+<div class="label">最近 20 局閒的比例 <span id="recentPlayerPct">—</span></div><div class="bar"><span id="recentPlayerBar" style="width:0%"></span></div></div><div id="recentCounts"></div>
+<p class="small">這是歷史頻率的描述性參考，不是可靠的下一局預測；每局結果仍可能隨機發生。樣本少時請勿據此加注。</p></div></section>
+<section class="card"><h2>新增一局紀錄</h2><div class="formgrid">
+<div class="field"><label>資料來源類型</label><select id="source"><option>MANUAL_UNVERIFIED</option><option>SIMULATED</option><option>API_UNVERIFIED</option><option>VERIFIED_REAL</option></select></div>
+<div class="field"><label>桌台／來源</label><input id="platform" placeholder="例如：手動紀錄"></div>
+<div class="field"><label>靴號</label><input id="shoe" placeholder="例如：S001"></div>
+<div class="field"><label>局數</label><input id="round" type="number" min="1" placeholder="1"></div>
+<div class="field"><label>實際結果</label><select id="result"><option>莊</option><option>閒</option><option>和</option></select></div>
+<div class="field"><label>事前預測</label><select id="prediction"><option>跳過</option><option>莊</option><option>閒</option><option>和</option></select></div>
+<div class="field"><label>下注方向</label><select id="bet"><option>不下注</option><option>莊</option><option>閒</option></select></div>
+<div class="field"><label>下注額</label><input id="stake" type="number" min="0" value="100"></div>
+</div><div class="row" style="margin-top:12px"><button id="add">新增紀錄</button><button class="secondary" id="export">匯出 CSV</button><label class="secondary" style="padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer">匯入 CSV <input id="import" type="file" accept=".csv,text/csv" style="display:none"></label><button class="danger" id="clear">清除本機資料</button></div>
+<p class="small">淨損益假設：莊贏淨利 0.95 倍（5% 抽水）、閒贏 1 倍、和局莊／閒主注退回。依實際桌規修改。</p></section>
+<section class="card"><h2>最近路單</h2><div class="road" id="road"></div><p class="small">莊紅圈、閒藍圈、和綠圈。僅顯示最近 100 局。</p></section>
+<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+<section class="card"><h2>連莊／連閒分布</h2><div class="tablewrap"><table><thead><tr><th>連續長度</th><th>莊</th><th>閒</th></tr></thead><tbody id="streaks"></tbody></table></div><p class="small" id="streakmax"></p></section>
+<section class="card"><h2>資料來源分布</h2><div class="tablewrap"><table><thead><tr><th>來源類型</th><th>筆數</th></tr></thead><tbody id="sources"></tbody></table></div></section>
+</div>
+<section class="card"><h2>最近紀錄</h2><div class="tablewrap"><table><thead><tr><th>日期</th><th>來源</th><th>靴號</th><th>局</th><th>結果</th><th>預測</th><th>評估</th><th>下注</th><th>損益</th></tr></thead><tbody id="records"></tbody></table></div></section>
+<section class="card warning"><h2>請正確解讀結果</h2><p>莊閒和比例與連莊連閒是歷史描述，不代表下一局會延續或反轉。預測命中率只有在預測事先記錄、結果完整填寫時才有意義。API_UNVERIFIED 代表來源尚未證實是真實賭場紀錄；只有可核驗來源才標 VERIFIED_REAL。此網站不會自動抓取賭場資料，也不保證預測或獲利。</p><p class="small">理論參考（標準八副牌近似值）：莊 45.86%、閒 44.62%、和 9.52%；不是即時資料或下一局預測。</p></section>
+<footer class="small">版本 1.1 · 靜態網站 · 資料保存在此瀏覽器的 localStorage。清除瀏覽器資料或更換裝置前，請先匯出 CSV 備份。</footer>
+</main>
+<script>
+const KEY='baccaratDataLabV1';
+let data=[];try{data=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){data=[]}
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(data));
+function profit(r){let s=Number(r.stake)||0;if(r.bet==='不下注')return 0;if(r.result==='和')return 0;if(r.bet!==r.result)return -s;return r.bet==='莊'?s*.95:s}
+function render(){
+ const n=data.length,b=data.filter(x=>x.result==='莊').length,p=data.filter(x=>x.result==='閒').length,t=data.filter(x=>x.result==='和').length;
+ const evaluated=data.filter(x=>['莊','閒'].includes(x.prediction)&&['莊','閒'].includes(x.result));
+ const wins=evaluated.filter(x=>x.prediction===x.result).length;
+ const pnl=data.reduce((a,x)=>a+profit(x),0);
+ $('n').textContent=n;$('counts').textContent=`${b} / ${p} / ${t}`;$('hit').textContent=evaluated.length?(wins/evaluated.length*100).toFixed(1)+'%':'—';$('pnl').textContent=pnl.toFixed(2);
+ const recent=data.slice(-20), rp=recent.filter(x=>x.result==='莊'||x.result==='閒'), rb=rp.filter(x=>x.result==='莊').length, rpl=rp.filter(x=>x.result==='閒').length, total=rp.length;
+ $('recentBankerPct').textContent=total?(rb/total*100).toFixed(1)+'%':'—';$('recentPlayerPct').textContent=total?(rpl/total*100).toFixed(1)+'%':'—';
+ $('recentBankerBar').style.width=total?(rb/total*100)+'%':'0%';$('recentPlayerBar').style.width=total?(rpl/total*100)+'%':'0%';
+ $('recentCounts').innerHTML=`<span class="pill">最近 20 局內莊：${rb}</span><span class="pill">閒：${rpl}</span><span class="pill">和：${recent.filter(x=>x.result==='和').length}</span>`;
+ if(total<5){$('nextPick').textContent='資料不足';$('nextReason').textContent=`目前只有 ${total} 筆莊／閒結果；至少記錄 5 筆後才顯示比例參考。`}
+ else if(rb===rpl){$('nextPick').textContent='莊、閒比例相同';$('nextReason').textContent='最近樣本中兩者次數相同，沒有明顯的歷史頻率差異。'}
+ else {const pick=rb>rpl?'莊':'閒';$('nextPick').textContent=`歷史比例較高：${pick}`;$('nextReason').textContent=`最近 ${total} 筆莊／閒結果中，${pick}出現較多；這不代表下一局更可能開出${pick}。`}
+ $('road').innerHTML=data.slice(-100).map(x=>`<span class="dot ${x.result==='莊'?'banker':x.result==='閒'?'player':'tie'}" title="${x.shoe} 第${x.round}局">${x.result}</span>`).join('');
+ let runs={莊:{},閒:{}},max={莊:0,閒:0},last=null,len=0,lastShoe=null;
+ for(const x of data){if(x.shoe!==lastShoe){last=null;len=0;lastShoe=x.shoe} if(x.result==='和'){last=null;len=0;continue} if(x.result===last)len++;else{last=x.result;len=1}runs[last][len]=(runs[last][len]||0)+1;max[last]=Math.max(max[last],len)}
+ $('streaks').innerHTML=[1,2,3,4,5,6,7,8,9,10].map(k=>`<tr><td>${k===10?'10+':k}</td><td>${Object.entries(runs['莊']).filter(([l])=>k===10?+l>=10:+l===k).reduce((a,[,v])=>a+v,0)}</td><td>${Object.entries(runs['閒']).filter(([l])=>k===10?+l>=10:+l===k).reduce((a,[,v])=>a+v,0)}</td></tr>`).join('');
+ $('streakmax').textContent=`最長連莊：${max['莊']}；最長連閒：${max['閒']}`;
+ const sc={};data.forEach(x=>sc[x.source]=(sc[x.source]||0)+1);$('sources').innerHTML=Object.entries(sc).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')||'<tr><td colspan="2">尚無資料</td></tr>';
+ $('records').innerHTML=data.slice(-50).reverse().map(x=>{let ev=['莊','閒'].includes(x.prediction)&&['莊','閒'].includes(x.result)?(x.prediction===x.result?'命中':'未中'):'不計';return `<tr><td>${x.date}</td><td>${x.source}</td><td>${x.shoe}</td><td>${x.round}</td><td>${x.result}</td><td>${x.prediction}</td><td>${ev}</td><td>${x.bet} ${x.stake}</td><td>${profit(x).toFixed(2)}</td></tr>`}).join('');
+}
+$('add').onclick=()=>{let shoe=$('shoe').value.trim();if(!shoe){alert('請填靴號');return}let round=Number($('round').value);if(!round){alert('請填局數');return}
+ data.push({date:new Date().toLocaleString('zh-TW'),source:$('source').value,platform:$('platform').value,shoe,round,result:$('result').value,prediction:$('prediction').value,bet:$('bet').value,stake:Number($('stake').value)||0});
+ save();render();$('round').value=round+1;
+};
+function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
+$('export').onclick=()=>{const cols=['date','source','platform','shoe','round','result','prediction','bet','stake'];const rows=[cols,...data.map(x=>cols.map(k=>x[k]))].map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob(['\ufeff'+rows],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='baccarat_records.csv';a.click();URL.revokeObjectURL(a.href)};
+$('import').onchange=async e=>{const file=e.target.files[0];if(!file)return;const text=await file.text();const lines=text.replace(/^\uFEFF/,'').trim().split(/\r?\n/);const parse=line=>{let out=[],cur='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const h=parse(lines.shift());let added=0;for(const l of lines){const vals=parse(l),o={};h.forEach((k,i)=>o[k]=vals[i]);if(o.result&&o.shoe){data.push({date:o.date||new Date().toLocaleString('zh-TW'),source:o.source||'MANUAL_UNVERIFIED',platform:o.platform||'',shoe:o.shoe,round:Number(o.round)||1,result:o.result,prediction:o.prediction||'跳過',bet:o.bet||'不下注',stake:Number(o.stake)||0});added++}}save();render();alert(`匯入 ${added} 筆。請檢查是否有重複資料。`);e.target.value=''};
+$('clear').onclick=()=>{if(confirm('確定清除本機所有紀錄？建議先匯出 CSV 備份。')){data=[];save();render()}};
+render();
+</script></body></html>

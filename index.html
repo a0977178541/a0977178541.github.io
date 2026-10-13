@@ -7,7 +7,7 @@
 :root{--bg:#0d1714;--panel:#162722;--panel2:#20372f;--text:#eef8f2;--muted:#a8c2b5;--green:#7de0ae;--red:#ff9c9c;--gold:#f2d38a;--line:#345247}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#0b1411,#142a22);color:var(--text);font:16px system-ui,-apple-system,"Noto Sans TC",sans-serif}
 main{max-width:1100px;margin:auto;padding:20px}header{padding:20px 0 10px}h1{margin:0;font-size:clamp(25px,4vw,36px)}h2{font-size:19px;margin:0 0 14px}p{line-height:1.65;color:var(--muted)}.tag{display:inline-block;background:#284a3c;color:var(--green);border-radius:99px;padding:5px 10px;font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:rgba(22,39,34,.96);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}.metric{font-size:26px;font-weight:750;margin-top:6px}.label{font-size:13px;color:var(--muted)}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}input,select,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px;background:#0e1d17;color:var(--text)}input,select{max-width:100%}button{cursor:pointer;background:#285540;border-color:#3b795c;font-weight:650}button.secondary{background:#1b3028}button.danger{background:#512d2d;border-color:#794747}.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:13px;color:var(--muted)}.road{display:flex;flex-wrap:wrap;gap:6px;min-height:42px}.dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:750}.banker{border:2px solid #ff8d8d;color:#ffb2b2}.player{border:2px solid #8cbcff;color:#b7d4ff}.tie{border:2px solid #82d8a6;color:#a8efc2}.small{font-size:12px;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}th{color:var(--muted)}.tablewrap{overflow:auto}.warning{border-left:3px solid var(--gold);padding-left:12px}.good{color:var(--green)}.bad{color:var(--red)}.hidden{display:none}.predict-box{border:1px solid var(--line);border-radius:12px;padding:14px;background:#102019}.predict-value{font-size:25px;font-weight:800;margin:6px 0}.bar{height:10px;border-radius:99px;background:#294239;overflow:hidden;margin:6px 0 12px}.bar span{display:block;height:100%;background:var(--green)}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:4px 9px;margin:3px;font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:rgba(22,39,34,.96);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}.metric{font-size:26px;font-weight:750;margin-top:6px}.label{font-size:13px;color:var(--muted)}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}input,select,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px;background:#0e1d17;color:var(--text)}input,select{max-width:100%}button{cursor:pointer;background:#285540;border-color:#3b795c;font-weight:650}button.secondary{background:#1b3028}button.danger{background:#512d2d;border-color:#794747}.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:13px;color:var(--muted)}.road{display:flex;flex-wrap:wrap;gap:6px;min-height:42px}.dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:750}.banker{border:2px solid #ff8d8d;color:#ffb2b2}.player{border:2px solid #8cbcff;color:#b7d4ff}.tie{border:2px solid #82d8a6;color:#a8efc2}.small{font-size:12px;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}th{color:var(--muted)}.tablewrap{overflow:auto}.warning{border-left:3px solid var(--gold);padding-left:12px}.good{color:var(--green)}.bad{color:var(--red)}.hidden{display:none}
 @media(max-width:760px){main{padding:13px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{font-size:22px}.card{padding:13px}}
 </style>
 </head>
@@ -19,13 +19,8 @@ main{max-width:1100px;margin:auto;padding:20px}header{padding:20px 0 10px}h1{mar
 <div class="card"><div class="label">預測命中率</div><div class="metric" id="hit">—</div></div>
 <div class="card"><div class="label">累計淨損益（估算）</div><div class="metric" id="pnl">0</div></div>
 </div>
-<section class="card"><h2>下一局參考預測</h2><div class="predict-box">
-<div class="label">依據已記錄的最近 20 局（和局不計入莊／閒比例）</div>
-<div class="predict-value" id="nextPick">資料不足</div><div id="nextReason">請先新增至少 5 筆莊／閒結果，再查看歷史比例。</div>
-<div style="margin-top:12px"><div class="label">最近 20 局莊的比例 <span id="recentBankerPct">—</span></div><div class="bar"><span id="recentBankerBar" style="width:0%"></span></div>
-<div class="label">最近 20 局閒的比例 <span id="recentPlayerPct">—</span></div><div class="bar"><span id="recentPlayerBar" style="width:0%"></span></div></div><div id="recentCounts"></div>
-<p class="small">這是歷史頻率的描述性參考，不是可靠的下一局預測；每局結果仍可能隨機發生。樣本少時請勿據此加注。</p></div></section>
-<section class="card"><h2>新增一局紀錄</h2><div class="formgrid">
+<section class="card"><h2>新增一局紀錄</h2>
+<div class="formgrid">
 <div class="field"><label>資料來源類型</label><select id="source"><option>MANUAL_UNVERIFIED</option><option>SIMULATED</option><option>API_UNVERIFIED</option><option>VERIFIED_REAL</option></select></div>
 <div class="field"><label>桌台／來源</label><input id="platform" placeholder="例如：手動紀錄"></div>
 <div class="field"><label>靴號</label><input id="shoe" placeholder="例如：S001"></div>
@@ -43,7 +38,7 @@ main{max-width:1100px;margin:auto;padding:20px}header{padding:20px 0 10px}h1{mar
 </div>
 <section class="card"><h2>最近紀錄</h2><div class="tablewrap"><table><thead><tr><th>日期</th><th>來源</th><th>靴號</th><th>局</th><th>結果</th><th>預測</th><th>評估</th><th>下注</th><th>損益</th></tr></thead><tbody id="records"></tbody></table></div></section>
 <section class="card warning"><h2>請正確解讀結果</h2><p>莊閒和比例與連莊連閒是歷史描述，不代表下一局會延續或反轉。預測命中率只有在預測事先記錄、結果完整填寫時才有意義。API_UNVERIFIED 代表來源尚未證實是真實賭場紀錄；只有可核驗來源才標 VERIFIED_REAL。此網站不會自動抓取賭場資料，也不保證預測或獲利。</p><p class="small">理論參考（標準八副牌近似值）：莊 45.86%、閒 44.62%、和 9.52%；不是即時資料或下一局預測。</p></section>
-<footer class="small">版本 1.1 · 靜態網站 · 資料保存在此瀏覽器的 localStorage。清除瀏覽器資料或更換裝置前，請先匯出 CSV 備份。</footer>
+<footer class="small">版本 1.0 · 靜態網站 · 資料保存在此瀏覽器的 localStorage。清除瀏覽器資料或更換裝置前，請先匯出 CSV 備份。</footer>
 </main>
 <script>
 const KEY='baccaratDataLabV1';
@@ -57,13 +52,6 @@ function render(){
  const wins=evaluated.filter(x=>x.prediction===x.result).length;
  const pnl=data.reduce((a,x)=>a+profit(x),0);
  $('n').textContent=n;$('counts').textContent=`${b} / ${p} / ${t}`;$('hit').textContent=evaluated.length?(wins/evaluated.length*100).toFixed(1)+'%':'—';$('pnl').textContent=pnl.toFixed(2);
- const recent=data.slice(-20), rp=recent.filter(x=>x.result==='莊'||x.result==='閒'), rb=rp.filter(x=>x.result==='莊').length, rpl=rp.filter(x=>x.result==='閒').length, total=rp.length;
- $('recentBankerPct').textContent=total?(rb/total*100).toFixed(1)+'%':'—';$('recentPlayerPct').textContent=total?(rpl/total*100).toFixed(1)+'%':'—';
- $('recentBankerBar').style.width=total?(rb/total*100)+'%':'0%';$('recentPlayerBar').style.width=total?(rpl/total*100)+'%':'0%';
- $('recentCounts').innerHTML=`<span class="pill">最近 20 局內莊：${rb}</span><span class="pill">閒：${rpl}</span><span class="pill">和：${recent.filter(x=>x.result==='和').length}</span>`;
- if(total<5){$('nextPick').textContent='資料不足';$('nextReason').textContent=`目前只有 ${total} 筆莊／閒結果；至少記錄 5 筆後才顯示比例參考。`}
- else if(rb===rpl){$('nextPick').textContent='莊、閒比例相同';$('nextReason').textContent='最近樣本中兩者次數相同，沒有明顯的歷史頻率差異。'}
- else {const pick=rb>rpl?'莊':'閒';$('nextPick').textContent=`歷史比例較高：${pick}`;$('nextReason').textContent=`最近 ${total} 筆莊／閒結果中，${pick}出現較多；這不代表下一局更可能開出${pick}。`}
  $('road').innerHTML=data.slice(-100).map(x=>`<span class="dot ${x.result==='莊'?'banker':x.result==='閒'?'player':'tie'}" title="${x.shoe} 第${x.round}局">${x.result}</span>`).join('');
  let runs={莊:{},閒:{}},max={莊:0,閒:0},last=null,len=0,lastShoe=null;
  for(const x of data){if(x.shoe!==lastShoe){last=null;len=0;lastShoe=x.shoe} if(x.result==='和'){last=null;len=0;continue} if(x.result===last)len++;else{last=x.result;len=1}runs[last][len]=(runs[last][len]||0)+1;max[last]=Math.max(max[last],len)}

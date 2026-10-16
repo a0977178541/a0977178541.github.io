@@ -36,8 +36,14 @@ main{max-width:1100px;margin:auto;padding:20px}header{padding:20px 0 10px}h1{mar
 <div class="field"><label>事前預測</label><select id="prediction"><option>跳過</option><option>莊</option><option>閒</option><option>和</option></select></div>
 <div class="field"><label>下注方向</label><select id="bet"><option>不下注</option><option>莊</option><option>閒</option></select></div>
 <div class="field"><label>下注額</label><input id="stake" type="number" min="0" value="100"></div>
-</div><div class="row" style="margin-top:12px"><button id="add">新增紀錄</button><button class="secondary" id="export">匯出 CSV</button><label class="secondary" style="padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer">匯入 CSV <input id="import" type="file" accept=".csv,text/csv" style="display:none"></label><button class="danger" id="clear">清除本機資料</button></div>
-<p class="small">淨損益假設：莊贏淨利 0.95 倍（5% 抽水）、閒贏 1 倍、和局莊／閒主注退回。依實際桌規修改。</p></section>
+<div class="row" style="margin-top:12px">
+  <button id="add">新增紀錄</button>
+  <button class="secondary" id="export">匯出 CSV</button>
+  <button class="secondary" id="exportJson">匯出 JSON</button>
+  <label class="secondary" style="padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer">匯入 CSV <input id="import" type="file" accept=".csv,text/csv" style="display:none"></label>
+  <label class="secondary" style="padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer">還原 JSON <input id="restoreJson" type="file" accept=".json,application/json" style="display:none"></label>
+  <button class="danger" id="clear">清除本機資料</button>
+</div>
 <section class="card"><h2>最近路單</h2><div class="road" id="road"></div><p class="small">莊紅圈、閒藍圈、和綠圈。僅顯示最近 100 局。</p></section>
 <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
 <section class="card"><h2>連莊／連閒分布</h2><div class="tablewrap"><table><thead><tr><th>連續長度</th><th>莊</th><th>閒</th></tr></thead><tbody id="streaks"></tbody></table></div><p class="small" id="streakmax"></p></section>
@@ -81,8 +87,37 @@ $('add').onclick=()=>{let shoe=$('shoe').value.trim();if(!shoe){alert('請填靴
  if(editingIndex>=0){record.date=data[editingIndex].date;data[editingIndex]={...data[editingIndex],...record};editingIndex=-1;$('add').textContent='新增紀錄'}else data.push(record);
  save();render();$('round').value=round+1;};
 $('records').addEventListener('click',e=>{const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(edit){editingIndex=Number(edit.dataset.edit);const x=data[editingIndex];if(!x)return;for(const k of ['source','platform','shoe','round','result','prediction','bet','stake'])$(k).value=x[k]??'';$('add').textContent='儲存修改';window.scrollTo({top:$('add').getBoundingClientRect().top+window.scrollY-180,behavior:'smooth'});}if(del){const i=Number(del.dataset.delete),x=data[i];if(!x)return;if(confirm(`確定刪除 ${x.shoe} 第 ${x.round} 局？建議先匯出備份。`)){data.splice(i,1);if(editingIndex===i){editingIndex=-1;$('add').textContent='新增紀錄'}save();render();}}});
-$('backupJson').onclick=()=>{const blob=new Blob([JSON.stringify({format:'baccaratDataLabV1',exportedAt:new Date().toISOString(),records:data},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='baccarat_backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
-$('restoreJson').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text()),arr=Array.isArray(o)?o:o.records;if(!Array.isArray(arr))throw Error('找不到紀錄陣列');if(confirm(`備份內有 ${arr.length} 筆。確定以備份取代目前資料？請先備份目前資料。`)){data=arr;save();render();alert(`已還原 ${data.length} 筆紀錄。`)}}catch(err){alert('還原失敗：'+err.message)}finally{e.target.value=''}};
+$('exportJson').onclick=()=>{const blob=new Blob([JSON.stringify({format:'baccaratDataLabV1',exportedAt:new Date().toISOString(),records:data},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='baccarat_backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('restoreJson').onchange=async e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  try{
+    const o=JSON.parse(await f.text());
+    const arr=Array.isArray(o)?o:o.records;
+    if(!Array.isArray(arr))throw Error('找不到紀錄陣列');
+    if(!arr.every(x=>x&&typeof x==='object'&&!Array.isArray(x)&&typeof x.shoe==='string'&&x.shoe.trim()!==''&&Number.isInteger(Number(x.round))&&Number(x.round)>=1&&['莊','閒','和'].includes(x.result)))throw Error('備份格式不正確，或有無效牌局資料；原有資料未更動');
+    const restored=arr.map(x=>({
+      date:String(x.date||new Date().toLocaleString('zh-TW')),
+      source:String(x.source||'MANUAL_UNVERIFIED'),
+      platform:String(x.platform||''),
+      shoe:x.shoe.trim(),
+      round:Number(x.round),
+      result:x.result,
+      prediction:['莊','閒','跳過'].includes(x.prediction)?x.prediction:'跳過',
+      bet:['莊','閒','不下注'].includes(x.bet)?x.bet:'不下注',
+      stake:Number.isFinite(Number(x.stake))&&Number(x.stake)>=0?Number(x.stake):0
+    }));
+    if(!confirm(`備份內有 ${restored.length} 筆有效紀錄。確定以備份取代目前所有紀錄？請先另存目前資料。取消則不會更動現有資料。`))return;
+    data=restored;
+    save();
+    render();
+    alert(`已還原 ${data.length} 筆紀錄。`);
+  }catch(err){
+    alert('還原失敗：'+err.message);
+  }finally{
+    e.target.value='';
+  }
+};
 function csvEscape(v){return '"'+String(v??'').replaceAll('"','""')+'"'}
 $('export').onclick=()=>{const cols=['date','source','platform','shoe','round','result','prediction','bet','stake'];const rows=[cols,...data.map(x=>cols.map(k=>x[k]))].map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob(['\ufeff'+rows],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='baccarat_records.csv';a.click();URL.revokeObjectURL(a.href)};
 $('import').onchange=async e=>{const file=e.target.files[0];if(!file)return;const text=await file.text();const lines=text.replace(/^\uFEFF/,'').trim().split(/\r?\n/);const parse=line=>{let out=[],cur='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const h=parse(lines.shift());let added=0;for(const l of lines){const vals=parse(l),o={};h.forEach((k,i)=>o[k]=vals[i]);if(o.result&&o.shoe&&['莊','閒','和'].includes(o.result)){const dupe=data.some(x=>x.shoe===o.shoe&&Number(x.round)===Number(o.round));if(!dupe||confirm(`牌靴 ${o.shoe} 第 ${o.round} 局可能重複，仍匯入嗎？`)){data.push({date:o.date||new Date().toLocaleString('zh-TW'),source:o.source||'MANUAL_UNVERIFIED',platform:o.platform||'',shoe:o.shoe,round:Number(o.round)||1,result:o.result,prediction:o.prediction||'跳過',bet:o.bet||'不下注',stake:Number(o.stake)||0});added++}}}save();render();alert(`匯入 ${added} 筆。請檢查是否有重複資料。`);e.target.value=''};
